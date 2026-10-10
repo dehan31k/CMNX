@@ -6,12 +6,6 @@
     <title>CMNX - Üyeler</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="firebase-config.js"></script>
-
     <style>
         .admin-layout { display: flex; min-height: calc(100vh - 70px); }
         .admin-sidebar { width: 260px; background-color: #161b22; border-right: 1px solid #30363d; padding: 20px 0; display: flex; flex-direction: column; }
@@ -46,20 +40,24 @@
         </aside>
 
         <main class="admin-content">
-            <h1 class="page-title"><i class="fa-solid fa-users"></i> Canlı Üye Listesi (Tüm IP'ler)</h1>
-            <p style="color: var(--text-muted); margin-bottom: 2rem;">Farklı bilgisayarlardan/IP'lerden kayıt olan tüm kullanıcıların ortak veritabanı listesi:</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <div>
+                    <h1 class="page-title"><i class="fa-solid fa-users"></i> Kayıtlı Üyeler</h1>
+                    <p style="color: var(--text-muted);">Platforma kayıt olan tüm kullanıcıların listesi:</p>
+                </div>
+            </div>
             
             <table>
                 <thead>
                     <tr>
                         <th>Kullanıcı Adı</th>
                         <th>E-posta Adresi</th>
-                        <th>Durum</th>
+                        <th>Kayıt Durumu</th>
                         <th>İşlem</th>
                     </tr>
                 </thead>
                 <tbody id="adminUsersTable">
-                    <tr><td colspan="4" style="text-align:center; color:#8b949e;">Yükleniyor...</td></tr>
+                    <!-- JS ile dolacak -->
                 </tbody>
             </table>
         </main>
@@ -69,36 +67,34 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Firebase üzerinden tüm IP'lerin verisini canlı çek
-            if (typeof db !== 'undefined') {
-                db.ref('users').on('value', (snapshot) => {
-                    const table = document.getElementById('adminUsersTable');
-                    const data = snapshot.val();
-                    
-                    if (!data) {
-                        table.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#8b949e;">Henüz kayıtlı üye bulunmuyor.</td></tr>`;
-                        return;
-                    }
-
-                    let keys = Object.keys(data);
-                    table.innerHTML = keys.map(key => {
-                        let u = data[key];
-                        return `
-                            <tr>
-                                <td><i class="fa-solid fa-user" style="color:#38bdf8; margin-right:8px;"></i><b>${u.name}</b></td>
-                                <td>${u.email}</td>
-                                <td><span style="color:#10b981; font-weight:600;"><i class="fa-solid fa-circle" style="font-size:8px;"></i> Aktif (Canlı)</span></td>
-                                <td><button class="btn-danger" onclick="deleteFirebaseUser('${key}')">Sil</button></td>
-                            </tr>
-                        `;
-                    }).join('');
-                });
-            }
+            renderUsers();
         });
 
-        window.deleteFirebaseUser = function(userKey) {
-            if (confirm("Bu üyeyi veritabanından tamamen silmek istediğinize emin misiniz?")) {
-                db.ref('users/' + userKey).remove();
+        function renderUsers() {
+            let users = JSON.parse(localStorage.getItem('cmnx_users')) || [];
+            const table = document.getElementById('adminUsersTable');
+            
+            if (users.length === 0) {
+                table.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#8b949e;">Henüz kayıtlı üye bulunmuyor.</td></tr>`;
+                return;
+            }
+
+            table.innerHTML = users.map((u, i) => `
+                <tr>
+                    <td><i class="fa-solid fa-user" style="color:#38bdf8; margin-right:8px;"></i><b>${u.name}</b></td>
+                    <td>${u.email}</td>
+                    <td><span style="color:#10b981; font-weight:600;"><i class="fa-solid fa-circle" style="font-size:8px;"></i> Aktif Üye</span></td>
+                    <td><button class="btn-danger" onclick="deleteUser(${i})">Sil</button></td>
+                </tr>
+            `).join('');
+        }
+
+        window.deleteUser = function(i) {
+            let users = JSON.parse(localStorage.getItem('cmnx_users')) || [];
+            if (confirm("Bu üyeyi silmek istediğinize emin misiniz?")) {
+                users.splice(i, 1);
+                localStorage.setItem('cmnx_users', JSON.stringify(users));
+                renderUsers();
             }
         }
     </script>
